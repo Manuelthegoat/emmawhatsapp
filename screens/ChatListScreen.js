@@ -16,7 +16,7 @@ const ChatListScreen = (props) => {
   const userChats = useSelector((state) => {
     const chatsData = state.chats.chatsData;
     return Object.values(chatsData).sort((a, b) => {
-      return new Date(b.updatedAt) - new Date(a.updatedAt)
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
     });
   });
 
@@ -49,11 +49,12 @@ const ChatListScreen = (props) => {
   }, [props.route?.params]);
   return (
     <PageContainer>
-      <PageTitle text={'Chats'} />
+      <PageTitle text={"Chats"} />
       <FlatList
         data={userChats}
         renderItem={(itemData) => {
           const chatData = itemData.item;
+          const chatId = chatData.key;
 
           const otherUserId = chatData.users.find(
             (uid) => uid !== userData.userId
@@ -61,9 +62,18 @@ const ChatListScreen = (props) => {
           const otherUser = storedUsers[otherUserId];
           if (!otherUser) return;
           const title = `${otherUser.firstName} ${otherUser.lastName}`;
-          const subTitle = "This Will Be Message";
+          const subTitle = chatData.latestMessageText || "New Chat";
           const image = otherUser.profilePicture;
-          return <DataItem title={title} subTitle={subTitle} image={image} />;
+          return (
+            <DataItem
+              onPress={() =>
+                props.navigation.navigate("ChatScreen", { chatId })
+              }
+              title={title}
+              subTitle={subTitle}
+              image={image}
+            />
+          );
         }}
       />
     </PageContainer>
