@@ -15,7 +15,7 @@ import { ActivityIndicator, View } from "react-native";
 import colors from "../constants/colors";
 import commonStyles from "../constants/commonStyles";
 import { setStoredUsers } from "../store/userSlice";
-import { setChatMessages } from "../store/messagesSlice";
+import { setChatMessages, setStarredMessages } from "../store/messagesSlice";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -118,18 +118,16 @@ const MainNavigator = () => {
           if (data) {
             data.key = chatSnapshot.key;
 
-            data.users.forEach(userId => {
-              if (storedUsers[userId]) return
-              const userRef = child(dbRef, `users/${userId}`)
+            data.users.forEach((userId) => {
+              if (storedUsers[userId]) return;
+              const userRef = child(dbRef, `users/${userId}`);
 
-              get(userRef)
-              .then(userSnapshot => {
-                const userSnapshotData = userSnapshot.val()
-                dispatch(setStoredUsers({ newUsers: {userSnapshotData} }))
-
-              })
-              refs.push(userRef)
-            })
+              get(userRef).then((userSnapshot) => {
+                const userSnapshotData = userSnapshot.val();
+                dispatch(setStoredUsers({ newUsers: { userSnapshotData } }));
+              });
+              refs.push(userRef);
+            });
 
             chatsData[chatSnapshot.key] = data;
           }
@@ -138,19 +136,28 @@ const MainNavigator = () => {
             setIsLoading(false);
           }
         });
-         
-        const messagesRef = child(dbRef, `messages/${chatId}`)
-        refs.push(messagesRef)
 
-        onValue(messagesRef, messagesSnapshot => {
-          const messagesData = messagesSnapshot.val()
-          dispatch(setChatMessages({ chatId, messagesData }))
-        })
+        const messagesRef = child(dbRef, `messages/${chatId}`);
+        refs.push(messagesRef);
+
+        onValue(messagesRef, (messagesSnapshot) => {
+          const messagesData = messagesSnapshot.val();
+          dispatch(setChatMessages({ chatId, messagesData }));
+        });
 
         if (chatsFoundCount == 0) {
           setIsLoading(false);
         }
       }
+    });
+    const userStarredMessagesRef = child(
+      dbRef,
+      `userStarredMessages/${userData.userId}`
+    );
+    refs.push(userStarredMessagesRef);
+    onValue(userStarredMessagesRef, (querySnapshot) => {
+      const starredMessages = querySnapshot.val() ?? {};
+      dispatch(setStarredMessages({ starredMessages }));
     });
     return () => {
       console.log("Unsubscribing firebase listeners");
@@ -162,7 +169,7 @@ const MainNavigator = () => {
   if (isLoading) {
     <View style={commonStyles.center}>
       <ActivityIndicator size={"large"} color={colors.primary} />
-    </View>
+    </View>;
   }
   return <StackNavigator />;
 };

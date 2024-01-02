@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  FlatList,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -15,53 +16,69 @@ import backgroundImage from "../assets/images/images.png";
 import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../constants/colors";
 import { useSelector } from "react-redux";
-import PageContainer from '../components/PageContainer'
+import PageContainer from "../components/PageContainer";
 import Bubble from "../components/Bubble";
 import { createChat, sendTextMessage } from "../utils/actions/chatActions";
 
 const ChatScreen = (props) => {
-  const userData = useSelector(state => state.auth.userData)
-  const storedUsers = useSelector(state => state.users.storedUsers)
-  const storedChats = useSelector(state => state.chats.chatsData)
-  const chatMessages = useSelector(state => state.messages.messagesData)
-
-  const [chatUsers, setChatUsers] = useState([])
+  const [chatUsers, setChatUsers] = useState([]);
   const [messageText, setMessageText] = useState("");
-  const [errorBannerText, setErrorBannerText] = useState("")
-  const [chatId, setChatId] = useState(props.route?.params?.chatId)
+  const [chatId, setChatId] = useState(props.route?.params?.chatId);
+  const [errorBannerText, setErrorBannerText] = useState("");
 
-  const chatData = (chatId && storedChats[chatId]) || props.route?.params?.newChatData
+  const userData = useSelector((state) => state.auth.userData);
+  const storedUsers = useSelector((state) => state.users.storedUsers);
+  const storedChats = useSelector((state) => state.chats.chatsData);
+  const chatMessages = useSelector((state) => {
+    if (!chatId) return [];
+    const chatMessagesData = state.messages.messagesData[chatId];
+    if (!chatMessagesData) return [];
+
+    const messageList = [];
+    for (const key in chatMessagesData) {
+      const message = chatMessagesData[key];
+      messageList.push({
+        key,
+        ...message,
+      });
+    }
+    return messageList;
+  });
+
+  const chatData =
+    (chatId && storedChats[chatId]) || props.route?.params?.newChatData;
 
   const getChatTitleFromName = () => {
-    const otherUserId = chatUsers.find(uid => uid !== userData.userId)
-    const otherUserData = storedUsers[otherUserId]
-    return otherUserData && `${otherUserData.firstName} ${otherUserData.lastName}`
-  }
+    const otherUserId = chatUsers.find((uid) => uid !== userData.userId);
+    const otherUserData = storedUsers[otherUserId];
+    return (
+      otherUserData && `${otherUserData.firstName} ${otherUserData.lastName}`
+    );
+  };
 
   useEffect(() => {
     props.navigation.setOptions({
-      headerTitle: getChatTitleFromName()
-    })
-    setChatUsers(chatData.users)
-  }, [chatUsers])
+      headerTitle: getChatTitleFromName(),
+    });
+    setChatUsers(chatData.users);
+  }, [chatUsers]);
 
-  const sendMessage = useCallback(async() => {
+  const sendMessage = useCallback(async () => {
     try {
-      let id = chatId
+      let id = chatId;
 
-      if(!id) {
+      if (!id) {
         //No Chat Id, Create The Chat
-        id = await createChat(userData.userId, props.route.params.newChatData)
-        setChatId(id)
+        id = await createChat(userData.userId, props.route.params.newChatData);
+        setChatId(id);
       }
-     await sendTextMessage(chatId, userData.userId, messageText)
-     setMessageText("");
+      await sendTextMessage(chatId, userData.userId, messageText);
+      setMessageText("");
     } catch (error) {
-      console.log(error)
-      setErrorBannerText("Message Failed To Send")
-      setTimeout(() => setErrorBannerText(""), 5000)
+      console.log(error);
+      setErrorBannerText("Message Failed To Send");
+      setTimeout(() => setErrorBannerText(""), 5000);
     }
-    
   }, [messageText, chatId]);
 
   return (
@@ -75,13 +92,35 @@ const ChatScreen = (props) => {
           source={backgroundImage}
           style={styles.backgroundImage}
         >
-          <PageContainer style={{ backgroundColor: 'transparent' }}>
-            {
-              !chatId && <Bubble type='system' text='This Is A New Chat, Say Hi ' />
-            }
-            {
-              errorBannerText !== "" && <Bubble text={errorBannerText} type="error" />
-            }
+          <PageContainer style={{ backgroundColor: "transparent" }}>
+            {!chatId && (
+              <Bubble type="system" text="This Is A New Chat, Say Hi " />
+            )}
+            {errorBannerText !== "" && (
+              <Bubble text={errorBannerText} type="error" />
+            )}
+            {chatId && (
+              <FlatList
+                data={chatMessages}
+                renderItem={(itemData) => {
+                  const message = itemData.item;
+                  const isOwnMessage = message.sentBy === userData.userId;
+
+                  const messageType = isOwnMessage
+                    ? "myMessage"
+                    : "theirMessage";
+                  return (
+                    <Bubble
+                      type={messageType}
+                      text={message.text}
+                      messageId={message.key}
+                      userId={userData.userId}
+                      chatId={chatId}
+                    />
+                  );
+                }}
+              />
+            )}
           </PageContainer>
         </ImageBackground>
 

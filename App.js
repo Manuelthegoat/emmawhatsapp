@@ -9,10 +9,11 @@ import AppNavigator from "./navigation/AppNavigator";
 import { Provider } from "react-redux";
 import { store } from "./store/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MenuProvider } from "react-native-popup-menu";
 
 // AsyncStorage.clear()
 
-SplashScreen.preventAutoHideAsync();
+// SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [appIsLoaded, setAppIsLoaded] = useState(false);
@@ -42,20 +43,20 @@ export default function App() {
 
     prepare();
   }, []);
-  const onLayout = useCallback(async () => {
-    if (appIsLoaded) {
-      await SplashScreen.hideAsync();
-    }
-  }, [appIsLoaded]);
+  // const onLayout = useCallback(async () => {
+  //   if (appIsLoaded) {
+  //     await SplashScreen.hideAsync();
+  //   }
+  // }, [appIsLoaded]);
 
-  if (!appIsLoaded) {
-    return null;
-  }
+ 
 
   return (
     <Provider store={store}>
-      <SafeAreaProvider style={styles.container} onLayout={onLayout}>
-        <AppNavigator />
+      <SafeAreaProvider style={styles.container} >
+        <MenuProvider>
+          <AppNavigator />
+        </MenuProvider>
       </SafeAreaProvider>
     </Provider>
   );
